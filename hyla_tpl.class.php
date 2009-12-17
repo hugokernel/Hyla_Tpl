@@ -21,7 +21,7 @@
 
 /**
  *  Refer to http://www.digitalspirit.org/ or http://www.hyla-project.org/ for update  
- *  Standalone version 0.4.1
+ *  Standalone version 0.4.2
  */
 
 class Hyla_Tpl {
@@ -194,7 +194,7 @@ class Hyla_Tpl {
 
         // A-t-on un block contenu ?
         if (strpos($data, '<!-- BEGIN') != false) {
-            $reg = "/<!-- BEGIN ([a-zA-Z0-9\.]*) -->(\s*?\n?\s*.*?\n?\s*)<!-- END \\1 -->/sm";
+            $reg = "/<!-- BEGIN ([a-zA-Z0-9\._]*) -->(\s*?\n?\s*.*?\n?\s*)<!-- END \\1 -->/sm";
             $data = preg_replace_callback($reg, array('self', '_pregGetBlockContent'), $data);
         }
 
