@@ -21,7 +21,7 @@
 
 /**
  *  Refer to http://www.digitalspirit.org/ or http://www.hyla-project.org/ for update  
- *  Standalone version 0.4.2
+ *  Standalone version 0.5.0
  */
 
 class Hyla_Tpl {
@@ -57,7 +57,7 @@ class Hyla_Tpl {
         $this->block_cache = array();
         $this->block_parsed = array();
 
-        $this->l10n_callback = 'l10n';
+        $this->l10n_callback = array('self', '_l10n');
 
         $this->vars = array();
         $this->funcs = array(
@@ -161,36 +161,22 @@ class Hyla_Tpl {
     }
 
     /**
+     *  Get block content
+     *  @param  string  $block_name Block name
+     *  @paran  bool    ¢parsed     Parse block ?
+     */
+    public function get($block_name = null, $parsed = true) {
+        return ($parsed) ? $this->render($block_name, false) : $this->_loadBlock($block_name);
+    }
+
+    /**
      *  Render block
      *  @param  string  $block_name Block name
-     *  @param  array   $vars       Variables array for this block
      */
-    public function render($block_name = null, $vars = null) {
+    public function render($block_name = null, $render = true) {
 
-        // Test file...
-        $this->_resolveBlock($block_name, $file, $block_name, $block_path);
-
-        $this->tmp_current_file = $file;
-
-        if (!array_key_exists($block_path, $this->block_cache)) {
-            if ($block_name) {
-                $reg = "/[ \t]*<!-- BEGIN " . preg_quote($block_name) . " -->\s*?\n?(\s*.*?\n?)\s*<!-- E(LSE|ND) "
-                                            . preg_quote($block_name) . " -->\s*?\n?/sm";
-                if (!preg_match_all($reg, $this->file[$file], $match, PREG_SET_ORDER)) {
-                    self::error('Invalid « %s » block : not found !', $block_name);
-                    return null;
-                }
-
-                $data = &$match[0][1];
-            } else {
-                $data = &$this->file[$file];
-                $block_name = '.';
-            }
-        } else {
-            $data = $this->block_cache[$block_path];
-        }
-
-        $this->block_cache[$block_path] = $data;
+        // Load block content...
+        $data = $this->_loadBlock($block_name, $block_path);
 
         // A-t-on un block contenu ?
         if (strpos($data, '<!-- BEGIN') != false) {
@@ -199,8 +185,8 @@ class Hyla_Tpl {
         }
 
         // Variable replace
-        if ($data && ($vars || $this->vars)) {
-            $this->_prepareReplaceArray($vars, $search, $replace, true);
+        if ($data && $this->vars) {
+            $this->_prepareReplaceArray($search, $replace);
 
             // Replace var
             $data = str_replace($search, $replace, $data);
@@ -210,12 +196,17 @@ class Hyla_Tpl {
             $data = preg_replace('/\{([\$|_|\!|#])([^}]+)(\[a-Z|]?)\}/e', "\$this->_parseFuncVar('$2', '$1')", $data);
         }
 
-        if (!array_key_exists($block_path, $this->block_parsed) || $this->block_parsed[$block_path] == -1) {
-            $this->block_parsed[$block_path] = null;
+        // Get content and add it !
+        if ($render) {
+            if (!array_key_exists($block_path, $this->block_parsed) || $this->block_parsed[$block_path] == -1) {
+                $this->block_parsed[$block_path] = null;
+            }
+
+            $this->block_parsed[$block_path] .= $data;
+            $data = $this->block_parsed[$block_path];
         }
 
-        $this->block_parsed[$block_path] .= $data;
-        return $this->block_parsed[$block_path];
+        return $data;
     }
 
     /**
@@ -285,6 +276,39 @@ class Hyla_Tpl {
     }
 
     /**
+     *  Load block content
+     */
+    private function _loadBlock($block_name, &$block_path = null) {
+
+        // Test file...
+        $this->_resolveBlock($block_name, $file, $block_name, $block_path);
+
+        $this->tmp_current_file = $file;
+
+        if (!array_key_exists($block_path, $this->block_cache)) {
+            if ($block_name) {
+                $reg = "/[ \t]*<!-- BEGIN " . preg_quote($block_name) . " -->\s*?\n?(\s*.*?\n?)\s*<!-- E(LSE|ND) "
+                                            . preg_quote($block_name) . " -->\s*?\n?/sm";
+                if (!preg_match_all($reg, $this->file[$file], $match, PREG_SET_ORDER)) {
+                    self::error('Invalid « %s » block : not found !', $block_name);
+                    return null;
+                }
+
+                $data = &$match[0][1];
+            } else {
+                $data = &$this->file[$file];
+                $block_name = '.';
+            }
+        } else {
+            $data = $this->block_cache[$block_path];
+        }
+
+        $this->block_cache[$block_path] = $data;
+
+        return $data;
+    }
+
+    /**
      *  Parse func var
      *  @param  string  $str    Variable with func
      *  @param  int     $pos    Offset while start func
@@ -294,7 +318,6 @@ class Hyla_Tpl {
         // Split on |
         $val = preg_split("/([a-zA-Z0-9]+:'.+?'|[^\|]+)\||$/", $val, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 
-//        $index = null;
         switch ($type) {
             // Variable
             case '$':
@@ -448,23 +471,17 @@ class Hyla_Tpl {
 
     /**
      *  Prepare var array
-     *  @param  array   $vars       Variable array
      *  @param  array   $search     Search array
      *  @param  array   $replace    Replace array
-     *  @param  bool    $bool       Add global variable
      */
-    private function _prepareReplaceArray($vars, &$search, &$replace, $global = false) {
+    private function _prepareReplaceArray(&$search, &$replace) {
 
         $i = 0;
         $search = array();
         $replace = array();
 
-        if ($global) {
-            $vars = array_merge((array)$this->vars, (array)$vars);
-        }
-
-        if ($vars) {
-            foreach ($vars as $key => $val) {
+        if ($this->vars) {
+            foreach ($this->vars as $key => $val) {
                 $search[] = '{$'.$key.'}';
                 $replace[] = $val;
                 $i++;
@@ -472,6 +489,15 @@ class Hyla_Tpl {
         }
 
         return $i;
+    }
+
+    /**
+     *  L10n default function
+     *  Call setL10nCallback method to define your l10n function...
+     *  @param  string  $str    String
+     */
+    private static function _l10n($str) {
+        return $str;
     }
 
     /**

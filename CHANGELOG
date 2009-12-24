@@ -1,7 +1,14 @@
 
+0.5.0
+  2009-12-24  Charles Rincheval  <hugo@digitalspirit.org>
+      * Added get method for get block content (parsed or not)
+      * Remove var parameter on render method
+      * If no l10n function is defined, l10n method (_) return the string and not an error
+      * Joyeux Noël de Montréal !
+
 0.4.2
   2009-12-17  Charles Rincheval  <hugo@digitalspirit.org>
-      * Adding support for _ character in BEGIN/END block name 
+      * Added support for _ character in BEGIN/END block name 
 
 0.4.1
 
@@ -12,3 +19,4 @@
 
   2009-10-22  Charles Rincheval
       * First public release
+
