@@ -1,3 +1,6 @@
+0.5.1
+  2010-01-26  Charles Rincheval  <hugo@digitalspirit.org>
+      * Bug correction : if tpl document start with a block (<!-- BEGIN ...), block was not replaced
 
 0.5.0
   2009-12-24  Charles Rincheval  <hugo@digitalspirit.org>
@@ -11,12 +14,10 @@
       * Added support for _ character in BEGIN/END block name 
 
 0.4.1
-
   2009-11-03  Charles Rincheval  <hugo@digitalspirit.org>
       * Remove notice problem
 
 0.4.0
-
   2009-10-22  Charles Rincheval
       * First public release
 
