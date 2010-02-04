@@ -21,7 +21,7 @@
 
 /**
  *  Refer to http://www.digitalspirit.org/ or http://www.hyla-project.org/ for update  
- *  Standalone version 0.5.1
+ *  Standalone version 0.5.2
  */
 
 class Hyla_Tpl {
@@ -353,7 +353,7 @@ class Hyla_Tpl {
         }
 
         if ($funcs) {
-            $parameter = null;
+            $parameter = $name;
             foreach ($funcs as $func) {
 
                 // Parameter ??
@@ -362,7 +362,6 @@ class Hyla_Tpl {
                     $parameter = self::_extractParam(substr($func, $pos + 1), $name, $parameter);
                 } else {
                     $function = $func;
-                    $parameter = $name;
                 }
 
                 $parameter = $this->_runFunc($function, $parameter);

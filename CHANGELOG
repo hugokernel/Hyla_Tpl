@@ -1,3 +1,6 @@
+0.5.2
+  2010-02-03  Charles Rincheval  <hugo@digitalspirit.org>
+      * Bug correction : Error when multiple variable function is called
 0.5.1
   2010-01-26  Charles Rincheval  <hugo@digitalspirit.org>
       * Bug correction : if tpl document start with a block (<!-- BEGIN ...), block was not replaced
