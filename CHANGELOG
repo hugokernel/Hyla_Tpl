@@ -1,3 +1,14 @@
+
+0.7.0
+  2010-03-16  Charles Rincheval  <hugo@digitalspirit.org>
+      * Tpl include function ({!include:xxx.tpl}) search file in default path specified in constructor
+      * Added tpl import function like include but who can open tpl file from another path than default path specified in constructor
+      * Improved performance speed and logic
+      * New variable tpl function : test
+      * New method : displayError(bool)
+      * Added setvar function and {&xxx} for setvar
+      * It's now possible to set a default value to a variable : {$neversetted:Default value !}
+
 0.5.2
   2010-02-03  Charles Rincheval  <hugo@digitalspirit.org>
       * Bug correction : Error when multiple variable function is called

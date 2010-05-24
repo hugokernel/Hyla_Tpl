@@ -1,0 +1,49 @@
+<html>
+
+<head>
+    <title>{$title}</title>
+
+    <style type="text/css" media="screen">
+        .ko {
+            color: red;
+        }
+
+        .ok, blockquote {
+            color: green;
+        }
+    </style>
+
+</head>
+
+<body>
+
+Hyla_Tpl version {$VERSION}
+
+<h2>Function</h2>
+
+{!cycle:paf,pof}
+{!cycle:paf,pof}
+{!cycle:paf,pof}
+
+<ul>
+    <li>« test » : {$test|test:'ok','<span class="ok">OK</span>','<span class="ko">Error</span>'}</li>
+    <li>« test » : {$test|test:'ko','<span class="ko">Error</span>','<span class="ok">OK</span>'}</li>
+    <li>String function :
+        <ul>
+            <li>« ucfirst » : {$words|ucfirst}</li>
+            <li>« ucwords » : {$words|ucwords}</li>
+            <li>« upper » : {$words|upper}</li>
+            <li>« lower » : {$words|lower}</li>
+            <li>« escape » : <span class="ok">{$escape|escape}</span></li>
+            <li>« ltrim » : |{$trim|ltrim}|</li>
+            <li>« rtrim » : |{$trim|rtrim}|</li>
+            <li>« trim » : |{$trim|trim}|</li>
+            <li>Mix (trim|lower|ucwords|escape) : {$words|trim|lower|ucwords|escape}</li>
+        </ul>
+    </li>
+</ul>
+
+
+</body>
+
+</html>
