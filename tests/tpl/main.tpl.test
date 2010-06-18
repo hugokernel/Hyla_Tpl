@@ -1,7 +1,7 @@
 <html>
 
 <head>
-    <title>{$title}</title>
+    <title></title>
 
     <style type="text/css" media="screen">
         .ko {
@@ -17,33 +17,65 @@
 
 <body>
 
-Hyla_Tpl version {$VERSION}
-
 <h2>Function</h2>
 
-{!cycle:paf,pof}
-{!cycle:paf,pof}
-{!cycle:paf,pof}
+{$user.name}
 
+{$nevercalled _(Hello)|upper}
+
+{!errors}
+
+{#!cycle:'red','jaune'}
+{#!cycle:'red','jaune'}
+
+{#$TEST|lower|upper}
+{#$test|upper}
+
+{#$item.content|split:45}
+
+{#!include:inc/1.tpl}
+
+{#!include:2.tpl}
+
+
+<!--
+{#default:Coucou, c'est moi !}
+{#functio|test:paf,paf}
+
+{#$a}
+{#$a|paf}
+{#$a (dd)}
+{#$a (dd)|paf}
+{#$a (dd)|paf|pof}
+{#$a (  Paf  )|upper|trim|lower}
+{#$test | trim | lower   |upper}
+
+{#$a (ff)|toto:toto}
+
+{#!printr:  '// En spécifiant un objet
+$obj = new user();
+$obj->name = "Paul";
+$obj->age = 34;
+
+$tpl->setVar("user", $obj);','php'|upper|lower|ucwords}
+
+{#$a (Default)|geshi: $0, 45880, $1, 'dd', fff, '// En spécifiant un objet
+$obj = new user();
+$obj->name = "Paul";
+$obj->age = 34;
+
+$tpl->setVar("user", $obj);','php'|toupper|trim}
+
+{#$a ("paf"ddDD!\)\ | (|)a)\|est) | upper:"o(|)|k","ko",'ddd'|lower:"allo,|)(","s",'dddd'|paf|}
+
+{#$test}
 <ul>
-    <li>« test » : {$test|test:'ok','<span class="ok">OK</span>','<span class="ko">Error</span>'}</li>
-    <li>« test » : {$test|test:'ko','<span class="ko">Error</span>','<span class="ok">OK</span>'}</li>
-    <li>String function :
-        <ul>
-            <li>« ucfirst » : {$words|ucfirst}</li>
-            <li>« ucwords » : {$words|ucwords}</li>
-            <li>« upper » : {$words|upper}</li>
-            <li>« lower » : {$words|lower}</li>
-            <li>« escape » : <span class="ok">{$escape|escape}</span></li>
-            <li>« ltrim » : |{$trim|ltrim}|</li>
-            <li>« rtrim » : |{$trim|rtrim}|</li>
-            <li>« trim » : |{$trim|trim}|</li>
-            <li>Mix (trim|lower|ucwords|escape) : {$words|trim|lower|ucwords|escape}</li>
-        </ul>
-    </li>
+    <li>« test » : {#$testo (OK)|lower|test:"ok","ok","ko"}</li>
+    <li>« test » : {#$test|test:'ok','<span class="ok">OK</span>','<span class="ko">Error</span>'}</li>
 </ul>
 
-
+{#!setvar:test,pauf}
+-->
 </body>
 
 </html>

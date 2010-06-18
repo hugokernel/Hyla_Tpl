@@ -1,7 +1,7 @@
 <?php
 /*
     This file is part of Hyla
-    Copyright (c) 2004-2009 Charles Rincheval.
+    Copyright (c) 2004-2010 Charles Rincheval.
     All rights reserved
 
     Hyla is free software; you can redistribute it and/or modify it
@@ -20,29 +20,38 @@
  */
 
 /**
- *  Refer to http://www.digitalspirit.org/ or http://www.hyla-project.org/ for update  
- *  Standalone version 0.5.2
+ *  Refer to http://www.digitalspirit.org/ or http://www.hyla-project.org/ for update
+ *  Standalone version 0.7.0
  */
 
 class Hyla_Tpl {
 
     private $path;
     private $file;
-    private $file_content;
 
     private $current_file;
     private $tmp_current_file;
+    private $current_parsed_file;
 
     private $remove_unknow_var;
+    private $display_error;
+
+    private $errors;
 
     private $block_cache;
     private $block_parsed;
 
     private $vars;
-    private $funcs;
-    private $user_funcs;
+
+    private $functions;
+    private $user_functions;
+
+    private $var_functions;
+    private $user_var_functions;
 
     private $l10n_callback;
+
+    const VERSION = '0.7.0';
 
     function __construct($path = '.') {
 
@@ -51,8 +60,13 @@ class Hyla_Tpl {
         $this->file = null;
         $this->current_file = null;
         $this->tmp_current_file = null;
+        $this->current_parsed_file = null;
 
         $this->remove_unknow_var = true;
+        $this->display_error = true;
+        $this->log_error = false;
+
+        $this->errors = array();
 
         $this->block_cache = array();
         $this->block_parsed = array();
@@ -60,7 +74,9 @@ class Hyla_Tpl {
         $this->l10n_callback = array('self', '_l10n');
 
         $this->vars = array();
-        $this->funcs = array(
+
+        $this->user_var_functions = array();
+        $this->var_functions = array(
             'ucfirst'   => 'ucfirst',
             'ucwords'   => 'ucwords',
             'lower'     => 'strtolower',
@@ -69,12 +85,25 @@ class Hyla_Tpl {
             'rtrim'     => 'rtrim',
             'ltrim'     => 'ltrim',
             'escape'    => 'htmlspecialchars',
-            'cycle'     => array('self', '_func_cycle'),
-            'include'   => array('self', '_getFileContent'),
-            'l10n'      => &$this->l10n_callback,
+            'test'      => array('self', '_func_test'),
         );
 
-        $this->user_funcs = array();
+        $this->user_functions = array();
+        $this->functions = array(
+            'cycle'     => array('self', '_func_cycle'),
+            'include'   => array($this, '_getFileContent'),
+            'import'    => array($this, '_func_import'),
+            'errors'    => array($this, '_func_getErrors'),
+            'setvar'    => array($this, 'setVar'),
+            'l10n'      => &$this->l10n_callback,
+        );
+    }
+
+    /**
+     *  Get library version
+     */
+    public function getVersion() {
+        return self::VERSION;
     }
 
     /**
@@ -87,10 +116,9 @@ class Hyla_Tpl {
         $ret = null;
         $path = $path ? $path : $this->path;
         $file = ($file) ? $file : $name;
-        if (!file_exists($path.'/'.$file)) {
-            self::error('File « %s » not found !', $path . '/' . $file);
-        } else {
-            $this->file[$name] = self::_getFileContent($path.'/'.$file);
+
+        if ($this->_testFile($path . '/' . $file)) {
+            $this->file[$name] = $this->_getFileContent($file, $path);
             $ret = $name;
 
             // Now, current file is this new file
@@ -112,6 +140,25 @@ class Hyla_Tpl {
     }
 
     /**
+     *  Set var
+     *  @param  string  $name   Variable name
+     *  @param  string  $value  Variable value
+     */
+    public function setVar($name, $value) {
+        if (is_array($value) || is_object($value)) {
+            foreach ($value as $key => $val) {
+                if (is_array($val)) {
+                    $this->setVar($name . '.' . $key, $val);
+                } else {
+                    $this->vars[$name . '.' . $key] = $val;
+                }
+            }
+        } else {
+            $this->vars[$name] = $value;
+        }
+    }
+
+    /**
      *  Set multiple vars
      *  @param  array   $vars   Variable array
      */
@@ -122,29 +169,27 @@ class Hyla_Tpl {
     }
 
     /**
-     *  Set var
-     *  @param  string  $name   Variable name
-     *  @param  string  $value  Variable value
-     */
-    public function setVar($name, $value) {
-        if (is_array($value) || is_object($value)) {
-            foreach ($value as $key => $val) {
-                if (is_array($val)) {
-                    $this->setVar($name . '.' . $key, $val);
-                } else
-                $this->vars[$name . '.' . $key] = $val;
-            }
-        } else {
-            $this->vars[$name] = $value;
-        }
-    }
-
-    /**
      *  Remove unknow var ?
      *  @param  bool    $bool   Yes or no
      */
     public function removeUnknowVar($bool) {
         return ($this->remove_unknow_var = $bool);
+    }
+
+    /**
+     *  Display error ?
+     *  @param  bool    $bool   Yes or no
+     */
+    public function displayError($bool) {
+        return ($this->display_error = $bool);
+    }
+
+    /**
+     *  Log error ?
+     *  @param  bool    $bool   Yes or no
+     */
+    public function logError($bool) {
+        return ($this->log_error = $bool);
     }
 
     /**
@@ -163,15 +208,15 @@ class Hyla_Tpl {
     /**
      *  Get block content
      *  @param  string  $block_name Block name
-     *  @paran  bool    ¢parsed     Parse block ?
      */
-    public function get($block_name = null, $parsed = true) {
-        return ($parsed) ? $this->render($block_name, false) : $this->_loadBlock($block_name);
+    public function get($block_name = null) {
+        return $this->render($block_name, false);
     }
 
     /**
      *  Render block
      *  @param  string  $block_name Block name
+     *  @param  bool    $render     Render (private)
      */
     public function render($block_name = null, $render = true) {
 
@@ -185,15 +230,17 @@ class Hyla_Tpl {
         }
 
         // Variable replace
-        if ($data && $this->vars) {
+        if ($data) {
             $this->_prepareReplaceArray($search, $replace);
 
             // Replace var
             $data = str_replace($search, $replace, $data);
 
             // Run function on var
-            // ToDo: optimize [$|_]
-            $data = preg_replace('/\{([\$|_|\!|#])([^}]+)(\[a-Z|]?)\}/e', "\$this->_parseFuncVar('$2', '$1')", $data);
+            // First, run set var function (&xxx)
+            $data = preg_replace('/{&([a-zA-Z_\-0-9]*)\:((\\\\}|\\\\|[^}])*)}/e', "\$this->setVar('$1', self::_skipQuote(stripslashes('$2')))", $data);
+
+            $data = preg_replace('/{([$|!|_|#])(([a-zA-Z_\-0-9]*)\:?((\\\\}|\\\\|[^}])*))}/e', "\$this->_parseFuncVar('$2', '$1')", $data);
         }
 
         // Get content and add it !
@@ -210,16 +257,36 @@ class Hyla_Tpl {
     }
 
     /**
-     *  Register a user function tpl
+     *  Register a user variable function tpl
      *  @param  string  $name   Name
      *  @param  string  $func   Function
      */
-    public function registerFunction($name, $func) {
+    public function registerVarFunction($name, $func) {
         $ret = false;
         if (is_callable($func)) {
-            $this->user_funcs[$name] = $func;
+            $this->user_var_functions[$name] = $func;
             $ret = true;
         }
+        return $ret;
+    }
+
+    /**
+     *  Register a user function tpl
+     *  @param  string  $name   Name
+     *  @param  string  $func   Function
+     *  @param  bool    $var    Register also as var function
+     */
+    public function registerFunction($name, $func, $var = false) {
+        $ret = false;
+        if (is_callable($func)) {
+            $this->user_functions[$name] = $func;
+            $ret = true;
+
+            if ($var) {
+                $ret = $this->registerVarFunction($name, $func);
+            }
+        }
+
         return $ret;
     }
 
@@ -228,23 +295,69 @@ class Hyla_Tpl {
      *  @param  bool    $user_func  With user function if true
      */
     public function getFunctionList($user_func = false) {
-        return array_keys(($user_func) ? array_merge($this->funcs, $this->user_funcs) : $this->funcs);
+        return array_keys(($user_func) ? array_merge($this->var_functions, $this->user_var_functions) : $this->var_functions);
+    }
+
+    /**
+     *  Test if file exists
+     *  @param  string  $file   File
+     *  @param  bool    $error  Print error if file not found if true
+     */
+    private function _testFile($file, $error = true) {
+        if (!($status = file_exists($file))) {
+            if ($error) {
+                $this->_error('File "%s" not found !', $file);
+            }
+        }
+        return $status;
+    }
+
+    /**
+     *  Preg wrapper for _getFileContent
+     */
+    private function _getFileContentWrapper($var) {
+        return $this->_getFileContent($var[1]);
     }
 
     /**
      *  Get file content
      *  @param string $file  File
      */
-    private static function _getFileContent($file) {
-
-        $file = self::_skipQuote($file);
+    private function _getFileContent($file, $path = null) {
 
         $content = null;
-        if (!file_exists($file)) {
-            self::error('File « %s » not found !', $file);
-        } else {
-            $content = file_get_contents($file);
-            $content = preg_replace('/\{\!include\:([^}]+)(\[a-Z|]?)\}/e', "self::_getFileContent('$1')", $content);
+        $file = self::_skipQuote($file);
+
+        /**
+         *  Scan :
+         *   1. Scan first in current path
+         *   2. Scan in Tpl root
+         */
+        $try = array(
+            dirname($this->current_parsed_file),
+            (($path) ? $path : $this->path),
+        );
+
+        $i = 1;
+        foreach ($try as $f) {
+
+            if (!$f) {
+                continue;
+            }
+
+            $pfile = $f . '/' . $file;
+
+            // File exists ? Print error only for last test !
+            if ($this->_testFile($pfile, ($i == count($try)))) {
+                $old = $this->current_parsed_file;
+                $this->current_parsed_file = $pfile;
+                $content = file_get_contents($pfile);
+                $content = preg_replace_callback('/\{\!include\:([^}]+)(\[a-Z|]?)\}/', array($this, '_getFileContentWrapper'), $content);
+                $this->current_parsed_file = $old;
+                break;
+            }
+    
+            $i++;
         }
 
         return $content;
@@ -252,12 +365,12 @@ class Hyla_Tpl {
 
     /**
      *  Resolve path block
-     *  Block can be in other file, in this case, use the selector «:»
+     *  Block can be in other file, in this case, use the selector ":"
      *  Example :
      *      - Access to toto block in current file :
-     *          « toto »
+     *          " toto "
      *      - Access to bar block in foo.tpl :
-     *          « foo.tpl:bar »
+     *          " foo.tpl:bar "
      *  @param  string  $path           Path to resolve
      *  @param  string  &$file          Reference to file variable
      *  @param  string  &$block_name    Reference to block name
@@ -271,7 +384,7 @@ class Hyla_Tpl {
             $file = substr($path, 0, $pos);
             $block_name = substr($path, $pos + 1);
         }
-        
+
         $block_path = $file . ':' . $block_name;
     }
 
@@ -289,12 +402,12 @@ class Hyla_Tpl {
             if ($block_name) {
                 $reg = "/[ \t]*<!-- BEGIN " . preg_quote($block_name) . " -->\s*?\n?(\s*.*?\n?)\s*<!-- E(LSE|ND) "
                                             . preg_quote($block_name) . " -->\s*?\n?/sm";
-                if (!preg_match_all($reg, $this->file[$file], $match, PREG_SET_ORDER)) {
-                    self::error('Invalid « %s » block : not found !', $block_name);
+                if (!preg_match($reg, $this->file[$file], $match)) {
+                    $this->_error('Invalid "%s" block : not found !', $block_name);
                     return null;
                 }
 
-                $data = &$match[0][1];
+                $data = &$match[1];
             } else {
                 $data = &$this->file[$file];
                 $block_name = '.';
@@ -315,62 +428,149 @@ class Hyla_Tpl {
      */
     private function _parseFuncVar($val, $type) {
 
-        // Split on |
-        $val = preg_split("/([a-zA-Z0-9]+:'.+?'|[^\|]+)\||$/", $val, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+        static $cache = array();
+        $out = null;
 
         switch ($type) {
             // Variable
             case '$':
-                $name = $val[0];
-                (count($val >= 2) ? array_shift($val) : null);
-                $funcs = $val;
 
-                // Variable exists ?
-                if (!array_key_exists($name, $this->vars)) {
-                    return ($this->remove_unknow_var) ? null : '{$' . $val . '}';
+                // Get default value
+                if (!preg_match("/^([a-zA-Z0-9\-\.\_]+)[\s]*(_)?(\([\S\s]*\))*([\s]*\|[\s]*(.*?))*$/iUs", $val, $m)) {
+                    return null;
                 }
 
-                $name = $this->vars[$name];
+                $name = isset($m[1]) ? $m[1] : null;
+                $l10n = isset($m[2]) ? ($m[2] == '_') : null;
+                $default = isset($m[3]) ? $m[3] : null;
+                $funcs = isset($m[4]) ? $m[4] : null;
+
+                // Format default
+                if ($default) {
+                    $default = trim(stripslashes($default));
+                    if ($default[0] == '(' && $default[strlen($default) - 1] == ')') {
+                        $default = substr($default, 1, strlen($default) - 2);
+                    }
+
+                    if ($l10n) {
+                        $default = call_user_func($this->l10n_callback, $default);
+                    }
+                }
+
+                // Variable exists ?
+                if (array_key_exists($name, $this->vars)) {
+                    $value = $this->vars[$name];
+                } else {
+                    if ($default) {
+                        $value = $default;
+                    } else {
+                        return ($this->remove_unknow_var) ? null : '{$' . $name . '}';
+                    }
+                }
+
+            // Function
+            case '!':
+                if ($type == '!') {
+                    $funcs = $val;
+                    $value = null;
+                }
+
+                if ($funcs) {
+                    $crc = crc32($funcs);
+                    if (!array_key_exists($crc, $cache)) {
+                        $funcs = self::_extract($funcs);
+                        $cache[$crc] = $funcs;
+                    } else {
+                        $funcs = $cache[$crc];
+                    }
+                }
+
+                $out = $value;
+
+                if ($funcs) {
+                    $i = 0;
+                    foreach ($funcs as $func => $args) {
+
+                        // Replace args
+                        if (count($args)) {
+                            foreach ($args as &$arg) {
+                                if ($arg == '$0') {
+                                    $arg = $value;
+                                } else if ($arg == '$1') {
+                                    $arg = $out;
+                                }
+                            }
+                        }
+
+                        if ($type == '$') {
+                            array_unshift($args, $out);
+                        } else if (!count($args) && $out) {
+                            $args[] = $out;
+                        }
+
+                        $out = $this->_runFunc(substr($func, 1), $args, ($type == '$' || $i));
+                        $i++;
+                    }
+                }
+
                 break;
             // L10n
             case '_':
-                $name = $val[0];
-                (count($val >= 2) ? array_shift($val) : null);
-                $funcs = $val;
-
-                $name = call_user_func($this->l10n_callback, $name);
+                $out = call_user_func($this->l10n_callback, $val);
                 break;
-            // Function
-            case '!':
-                $name = null;
-                $funcs = $val;
-                break;
-            // Comment
+            // Comment, setVar
             case '#':
-                $name = null;
-                $funcs = null;
-                break;
+            case '&':
         }
 
-        if ($funcs) {
-            $parameter = $name;
-            foreach ($funcs as $func) {
+        return $out;
+    }
 
-                // Parameter ??
-                if ($pos = strpos($func, ':')) {
-                    $function = substr($func, 0, $pos);
-                    $parameter = self::_extractParam(substr($func, $pos + 1), $name, $parameter);
-                } else {
-                    $function = $func;
+    /**
+     *  Extract functions and params
+     *  @param  string  $in     Data in
+     */
+    private static function _extract($in) {
+        $out = null;
+        $in = str_replace('\"', '"', $in);
+
+        // Split funcs and args
+        if (preg_match_all('/((["\']).*?[^\\\]\\2)|((\|)*[\s]*[\w$]+)/s', $in, $m)) {
+            $out = array();
+            $i = $f = 0;
+
+            $func = $f . ($m[0][0][0] == '|' ? substr($m[0][0], 1) : $m[0][0]);
+
+            if (count($m[0]) > 1) {
+                foreach ($m[0] as $item) {
+
+                    $item = stripslashes(trim($item));
+
+                    if ($item[0] == '"' || $item[0] == "'") {
+                        $out[$func][] = self::_skipQuote($item);
+                    } else if ($item[0] == '|') {
+                        $func = trim(substr($item, 1));
+                        $func = $f . $func;
+                        $out[$func] = array();
+                        $f++;
+
+                    // $0 is the first variable
+                    } else if ($item == '$0' || $item == '$1') {
+                        $out[$func][] = $item;
+                    } else {
+                        if ($i) {
+                            $out[$func][] = self::_skipQuote($item);
+                        }
+                    }
+
+                    $i++;
                 }
-
-                $parameter = $this->_runFunc($function, $parameter);
+            } else {
+                $out[$func] = array();
             }
-        } else {
-            $parameter = $name;
         }
 
-        return $parameter;
+        return $out;
     }
 
     /**
@@ -380,8 +580,12 @@ class Hyla_Tpl {
 
         $param = null;
 
+        if ($str[0] == '\\') {
+            $str = substr($str, 1);
+        }
+
         // Explode on ,
-        if (preg_match_all("/'([^']|('(?!,|$))?)*\'|[^,\r\n]+/", $str, $param)) {
+        if (preg_match_all("/(['\"])([^\\1]|(\\1(?!,|$))?)*\\1|[^,]+/", $str, $param)) {
             $param = $param[0];
             foreach ($param as &$f) {
                 switch ($f) {
@@ -399,10 +603,11 @@ class Hyla_Tpl {
         return $param;
     }
 
-    private function _skipQuote($str) {
+    private static function _skipQuote($str) {
         // Delete quote
         $str = trim($str);
-        if ($str[0] == "'" && $str[strlen($str) - 1] == "'") {
+        if ($str[0] == "'" && $str[strlen($str) - 1] == "'" ||
+            $str[0] == '"' && $str[strlen($str) - 1] == '"') {
             $str = substr($str, 1, strlen($str) - 2);
         }
         return stripslashes($str);
@@ -413,22 +618,19 @@ class Hyla_Tpl {
      *  @param  string  $name   Function name
      *  @param  array   $param  Parameter
      */
-    private function _runFunc($name, $param = null) {
+    private function _runFunc($name, $param = null, $type = true) {
         $var = null;
-        $ok = false;
+        $functions = ($type) ? array_merge($this->var_functions, $this->user_var_functions) : array_merge($this->functions, $this->user_functions);
 
-        // Valid callback function ?
-        foreach(array($this->funcs, $this->user_funcs) as $funcs) {
-            if (array_key_exists($name, $funcs) && is_callable($funcs[$name])) {
+        if (array_key_exists($name, $functions) && is_callable($functions[$name])) {
+            if ($param) {
                 $param = !is_array($param) ? array($param) : $param;
-                $var = call_user_func_array($funcs[$name], $param);
-                $ok = true;
-                break;
+                $var = call_user_func_array($functions[$name], $param);
+            } else {
+                $var = call_user_func($functions[$name]);
             }
-        }
-
-        if (!$ok) {
-            self::error('Invalid « %s » function !', $name);
+        } else {
+            $this->_error('Invalid "%s" function !', $name);
         }
 
         return $var;
@@ -479,12 +681,10 @@ class Hyla_Tpl {
         $search = array();
         $replace = array();
 
-        if ($this->vars) {
-            foreach ($this->vars as $key => $val) {
-                $search[] = '{$'.$key.'}';
-                $replace[] = $val;
-                $i++;
-            }
+        foreach ($this->vars as $key => $val) {
+            $search[] = '{$'.$key.'}';
+            $replace[] = $val;
+            $i++;
         }
 
         return $i;
@@ -500,6 +700,27 @@ class Hyla_Tpl {
     }
 
     /**
+     *  Include tpl file not in tpl root path
+     *  @param  string  $file   File to include
+     */
+    private function _func_import($file) {
+        $pos = strrpos($file, '/');
+        $path = './';
+        if ($pos !== false) {
+            $path = substr($file, 0, $pos + 1);
+            $file = substr($file, $pos + 1);
+        }
+        return $this->_getFileContent($file, $path);
+    }
+
+    /**
+     *  Test function
+     */
+    private static function _func_test($var, $test, $out, $else = null) {
+        return ($var == $test ? $out : $else);
+    }
+
+    /**
      *  Cycle function
      */
     private static function _func_cycle($even, $odd, $cycle = 2) {
@@ -512,11 +733,33 @@ class Hyla_Tpl {
     }
 
     /**
+     *  Get errors
+     */
+    private function _func_getErrors($html = true) {
+        $str = null;
+        foreach ($this->errors as $error) {
+            $str .= $error;
+            if ($html) {
+                $str .= '<br />';
+            }
+        }
+        return $str;
+    }
+
+    /**
      *  Print error
      */
-    private static function error() {
-        $param = func_get_args();
-        echo '<strong>' . __CLASS__ . ' error : </strong>' . call_user_func_array('sprintf', $param) . "<br />\n";
+    private function _error() {
+
+        if ($this->log_error) {
+            $param = func_get_args();
+            $this->errors[] = call_user_func_array('sprintf', $param);
+        }
+
+        if ($this->display_error) {
+            $param = func_get_args();
+            echo '<strong>' . __CLASS__ . ' error : </strong>' . call_user_func_array('sprintf', $param) . "<br />\n";
+        }
     }
 }
 

@@ -24,6 +24,7 @@ function traduction($var) {
         return $var;
     }
     $l10n = array(
+        'Hello'         =>  'Salut',
         'Current path'  =>  'Chemin courant',
         'Size'          =>  'Taille',
         'Name'          =>  'Nom',
@@ -62,7 +63,13 @@ function printo() {
 }
 
 $t->registerFunction('printo', create_function(null, "return 'function printo';"));
+$t->registerFunction('printr', create_function('$args', 'return print_r($args, true);'));
+$t->registerFunction('print', create_function('$args', '$out = null; foreach(func_get_args() as $arg) $out .= $arg; return $out;'), true);
 
+function hello($name = null) {
+    return "Hello $name !";
+}
+$t->registerFunction('hello', 'hello');
 
 $t->render('b4');
 $t->render('b4');
@@ -90,7 +97,9 @@ $lang = isset($_GET['lang']) ? $_GET['lang'] : 'fr';
 // Assigne quelques variables
 $t->setVars(array(
     'VERSION'       =>  $t->getVersion(),
+    'a'             =>  'Lorem ipsum dolor sit amet',
     'test'          =>  'ok',
+    'TEST'          =>  'OK',
     'test1'         =>  'ok1',
     'test2'         =>  'ok2',
     'escape'        =>  '<span class="ko">toto</span>',

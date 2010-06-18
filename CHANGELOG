@@ -1,5 +1,12 @@
 
 0.7.0
+  2010-06-16  Charles Rincheval  <hugo@digitalspirit.org>
+      * Bug correction : if there are no call to setvar method, empty variable is not removed from tpl
+      * It's now possible to have a default value with l10n callback : {$neversetted _(Default value !)}
+
+  2010-06-04  Charles Rincheval  <hugo@digitalspirit.org>
+      * Include function search file in current directory (same as current tpl file) by default and then, search in default path specified in constructor
+
   2010-03-16  Charles Rincheval  <hugo@digitalspirit.org>
       * Tpl include function ({!include:xxx.tpl}) search file in default path specified in constructor
       * Added tpl import function like include but who can open tpl file from another path than default path specified in constructor
@@ -7,7 +14,7 @@
       * New variable tpl function : test
       * New method : displayError(bool)
       * Added setvar function and {&xxx} for setvar
-      * It's now possible to set a default value to a variable : {$neversetted:Default value !}
+      * It's now possible to set a default value to a variable : {$neversetted (Default value !)}
 
 0.5.2
   2010-02-03  Charles Rincheval  <hugo@digitalspirit.org>
