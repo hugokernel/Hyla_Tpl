@@ -1,4 +1,8 @@
 
+0.7.1
+  2011-07-07  erichard <https://github.com/hugokernel/Hyla_Tpl/pull/1>
+      * FIX a bug when a default value is set to 0
+
 0.7.0
   2010-06-16  Charles Rincheval  <hugo@digitalspirit.org>
       * Bug correction : if there are no call to setvar method, empty variable is not removed from tpl

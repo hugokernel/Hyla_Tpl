@@ -21,7 +21,7 @@
 
 /**
  *  Refer to http://www.digitalspirit.org/ or http://www.hyla-project.org/ for update
- *  Standalone version 0.7.0
+ *  Standalone version 0.7.1
  */
 
 class Hyla_Tpl {
@@ -51,7 +51,7 @@ class Hyla_Tpl {
 
     private $l10n_callback;
 
-    const VERSION = '0.7.0';
+    const VERSION = '0.7.1';
 
     function __construct($path = '.') {
 
