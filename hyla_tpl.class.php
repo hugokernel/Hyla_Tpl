@@ -356,7 +356,7 @@ class Hyla_Tpl {
                 $this->current_parsed_file = $old;
                 break;
             }
-    
+
             $i++;
         }
 
@@ -461,7 +461,7 @@ class Hyla_Tpl {
                 if (array_key_exists($name, $this->vars)) {
                     $value = $this->vars[$name];
                 } else {
-                    if ($default) {
+                    if ($default !== null) {
                         $value = $default;
                     } else {
                         return ($this->remove_unknow_var) ? null : '{$' . $name . '}';
