@@ -67,6 +67,31 @@ Hyla_Tpl version {$VERSION}
 </blockquote>
 <!-- END b1 -->
 
+<h2>Blocks with default values</h2>
+<pre><code>
+$lines = array(
+    0 => array(
+        'text' => null
+    ),
+    1 => array(
+        'text' => ''
+    ),
+    2 => array(
+        'text' => false
+    ),
+    3 => array(
+        'text' => 0
+    ),
+    4 => array(
+        'text' => 'some text'
+    )
+);
+</code></pre>
+
+<!-- BEGIN block_with_defaults -->
+<p>line  = {$line.text (<span class="ok">(default value)</span>)}</p>
+<!-- END block_with_defaults -->
+
 <a href="?dir={$dir}&lang={$lang_switch}">{_Switch lang} : {$lang_switch}</a>
 
 <table width="50%" id="tree">
