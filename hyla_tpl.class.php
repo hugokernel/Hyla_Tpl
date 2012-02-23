@@ -457,15 +457,13 @@ class Hyla_Tpl {
                     }
                 }
 
-                // Variable exists ?
-                if (array_key_exists($name, $this->vars)) {
+                // Default with "empty" value
+                if ($default !== null && (!array_key_exists($name, $this->vars) || !strlen($this->vars[$name]))) {
+                    $value = $default;
+                } elseif (array_key_exists($name, $this->vars)) {
                     $value = $this->vars[$name];
                 } else {
-                    if ($default !== null) {
-                        $value = $default;
-                    } else {
-                        return ($this->remove_unknow_var) ? null : '{$' . $name . '}';
-                    }
+                    return ($this->remove_unknow_var) ? null : '{$' . $name . '}';
                 }
 
             // Function
