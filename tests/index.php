@@ -141,6 +141,29 @@ foreach ($files as $file) {
 
 $t->render('block.always.called');
 
+$lines = array(
+    0 => array(
+        'text' => null
+    ),
+    1 => array(
+        'text' => ''
+    ),
+    2 => array(
+        'text' => false
+    ),
+    3 => array(
+        'text' => 0
+    ),
+    4 => array(
+        'text' => 'some text'
+    ),
+);
+
+foreach ($lines as $line) {
+    $t->setVar('line', $line);
+    $t->render('block_with_defaults');
+}
+
 // Affiche le résultat
 echo $t->render();
 
