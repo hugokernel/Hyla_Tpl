@@ -111,6 +111,12 @@ $t->setVars(array(
     'lang_switch'   =>  ($lang == 'en' ? 'fr' : 'en'),
 ));
 
+$t->setVars(array(
+    'var_default_null'  => null,
+    'var_default_false' => false,
+    'var_default_0'     => 0,
+));
+
 // Ouvre le dossier
 if (!$files = @scandir($dir)) {
     exit("Unable to open « $dir »");
@@ -140,29 +146,6 @@ foreach ($files as $file) {
 }
 
 $t->render('block.always.called');
-
-$lines = array(
-    0 => array(
-        'text' => null
-    ),
-    1 => array(
-        'text' => ''
-    ),
-    2 => array(
-        'text' => false
-    ),
-    3 => array(
-        'text' => 0
-    ),
-    4 => array(
-        'text' => 'some text'
-    ),
-);
-
-foreach ($lines as $line) {
-    $t->setVar('line', $line);
-    $t->render('block_with_defaults');
-}
 
 // Affiche le résultat
 echo $t->render();
