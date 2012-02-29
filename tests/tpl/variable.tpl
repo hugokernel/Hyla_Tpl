@@ -55,7 +55,9 @@ with special char: "\}{\} <!-- -->\'---
 
 <ul>
     <li>No data (must be empty) : {$varsetter}</li>
-    <li>No data with default value : {$varsetter (<span class="ok">Default value !</span>)}</li>
+    <li>No data (null) with default value : {$var_default_null (<span class="ok">Default value !</span>)}</li>
+    <li>No data (false) with default value : {$var_default_false (<span class="ok">Default value !</span>)}</li>
+    <li>No data (0) with default value : {$var_default_0 (<span class="ok">Default value !</span>)}</li>
     <li>No data with default value and special character : {$varsetter (<span class="ok">Default value ) " ' \})\|toto !</span>)}</li>
     <li>No data with default 0 value : {$varsetter (0)}</li>
     <li>Default l10n : {$empty _(Hello)}</li>
