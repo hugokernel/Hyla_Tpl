@@ -1,4 +1,8 @@
 
+0.7.2
+  2014-11-07 kode68
+      * Fixed PHP5.5 preg_replace /e modifier is deprecated
+
 0.7.1
   2011-07-07  erichard <https://github.com/hugokernel/Hyla_Tpl/pull/1>
       * FIX a bug when a default value is set to 0
