@@ -238,17 +238,17 @@ class Hyla_Tpl {
 
             // Run function on var
             // First, run set var function (&xxx)
-			$data = preg_replace_callback(
-			    '/{&([a-zA-Z_\-0-9]*)\:((\\\\}|\\\\|[^}])*)}/',
-			    function($m) { return $this->setVar($m[1], self::_skipQuote(stripslashes($m[2]))); },
-			    $data
-			);
+            $data = preg_replace_callback(
+                '/{&([a-zA-Z_\-0-9]*)\:((\\\\}|\\\\|[^}])*)}/',
+                function($m) { return $this->setVar($m[1], self::_skipQuote(stripslashes($m[2]))); },
+                $data
+            );
 
-			$data = preg_replace_callback(
-			    '/{([$|!|_|#])(([a-zA-Z_\-0-9]*)\:?((\\\\}|\\\\|[^}])*))}/',
-			    function($m) { return $this->_parseFuncVar($m[2], $m[1]); },
-			    $data
-			);
+            $data = preg_replace_callback(
+                '/{([$|!|_|#])(([a-zA-Z_\-0-9]*)\:?((\\\\}|\\\\|[^}])*))}/',
+                function($m) { return $this->_parseFuncVar($m[2], $m[1]); },
+                $data
+            );
         }
 
         // Get content and add it !
