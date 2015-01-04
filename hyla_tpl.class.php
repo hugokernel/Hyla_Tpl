@@ -21,7 +21,7 @@
 
 /**
  *  Refer to http://www.digitalspirit.org/ or http://www.hyla-project.org/ for update
- *  Standalone version 0.7.2
+ *  Standalone version 0.7.3
  */
 
 class Hyla_Tpl {
@@ -51,7 +51,7 @@ class Hyla_Tpl {
 
     private $l10n_callback;
 
-    const VERSION = '0.7.1';
+    const VERSION = '0.7.3';
 
     function __construct($path = '.') {
 
@@ -135,6 +135,7 @@ class Hyla_Tpl {
         $ret = false;
         if (array_key_exists($file, $this->file)) {
             $this->current_file = $file;
+            $ret = true;
         }
         return $ret;
     }
