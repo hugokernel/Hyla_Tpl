@@ -1,0 +1,11 @@
+
+azerty
+
+test on
+2 line
+
+test on
+2 line with double-quote
+
+test on 2 line
+with special char: "}{} <!-- -->'---éàèùç
