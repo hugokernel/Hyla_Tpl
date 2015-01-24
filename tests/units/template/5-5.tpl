@@ -1,0 +1,1 @@
+<!-- BEGIN b2 -->azerty<!-- END b2 -->
